@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Terminal } from './Terminal';
 import { ControlPanel } from './ControlPanel';
 import { ReconPipeline } from './ReconPipeline';
 import { KnowledgeGraph } from './KnowledgeGraph';
 import { ApiKeyVault } from './ApiKeyVault';
 import { HITLPanel } from './HITLPanel';
-import { Activity, Shield, Terminal as TerminalIcon, Settings, Database, Network } from 'lucide-react';
+import { Activity, Shield, Terminal as TerminalIcon, Settings, Database, Network, Menu, X } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 export function DashboardLayout() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const navItems = [
     { icon: Activity, label: 'Dashboard', active: true },
     { icon: TerminalIcon, label: 'Terminal', active: false },
@@ -19,11 +21,30 @@ export function DashboardLayout() {
 
   return (
     <div className="flex h-screen w-full bg-synod-bg-primary text-white overflow-hidden selection:bg-synod-accent/30">
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-16 md:w-64 border-r border-white/5 bg-synod-bg-secondary flex flex-col transition-all duration-300 z-20">
-        <div className="h-16 flex items-center justify-center md:justify-start md:px-6 border-b border-white/5">
-          <Shield className="text-synod-accent shrink-0" size={24} />
-          <span className="ml-3 font-bold tracking-widest text-lg hidden md:block">SYNOD</span>
+      <aside className={cn(
+        "fixed md:static inset-y-0 left-0 w-64 border-r border-white/5 bg-synod-bg-secondary flex flex-col transition-transform duration-300 z-50",
+        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+      )}>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/5">
+          <div className="flex items-center">
+            <Shield className="text-synod-accent shrink-0" size={24} />
+            <span className="ml-3 font-bold tracking-widest text-lg">SYNOD</span>
+          </div>
+          <button 
+            className="md:hidden text-gray-400 hover:text-white"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <X size={20} />
+          </button>
         </div>
         
         <nav className="flex-1 py-6 flex flex-col gap-2 px-3">
@@ -31,19 +52,19 @@ export function DashboardLayout() {
             <button
               key={i}
               className={cn(
-                "flex items-center justify-center md:justify-start px-3 py-3 rounded-lg transition-all group cursor-pointer",
+                "flex items-center px-3 py-3 rounded-lg transition-all group cursor-pointer",
                 item.active 
                   ? "bg-synod-accent/10 text-synod-accent" 
                   : "text-gray-500 hover:bg-white/5 hover:text-gray-300"
               )}
             >
               <item.icon size={20} className={cn("shrink-0", item.active ? "text-synod-accent" : "text-gray-500 group-hover:text-gray-300")} />
-              <span className="ml-3 text-sm font-medium hidden md:block">{item.label}</span>
+              <span className="ml-3 text-sm font-medium">{item.label}</span>
             </button>
           ))}
         </nav>
         
-        <div className="p-4 border-t border-white/5 hidden md:block">
+        <div className="p-4 border-t border-white/5">
           <div className="flex items-center space-x-2 text-xs font-mono text-gray-500">
             <span className="w-2 h-2 rounded-full bg-synod-accent animate-pulse" />
             <span>v2.4.1-beta</span>
@@ -54,12 +75,21 @@ export function DashboardLayout() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         {/* Top Header */}
-        <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-synod-bg-primary/80 backdrop-blur-sm z-10">
-          <h1 className="text-lg font-semibold tracking-wide text-gray-200">Vulnerability Intelligence System</h1>
+        <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 md:px-6 bg-synod-bg-primary/80 backdrop-blur-sm z-10">
+          <div className="flex items-center">
+            <button 
+              className="md:hidden mr-4 text-gray-400 hover:text-white"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu size={24} />
+            </button>
+            <h1 className="text-sm md:text-lg font-semibold tracking-wide text-gray-200 truncate max-w-[200px] md:max-w-none">Vulnerability Intelligence</h1>
+          </div>
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 text-xs font-mono bg-synod-critical/10 text-synod-critical px-3 py-1.5 rounded-full border border-synod-critical/20">
+            <div className="flex items-center space-x-2 text-[10px] md:text-xs font-mono bg-synod-critical/10 text-synod-critical px-2 md:px-3 py-1 md:py-1.5 rounded-full border border-synod-critical/20">
               <span className="w-2 h-2 rounded-full bg-synod-critical animate-pulse" />
-              <span>LIVE TARGET</span>
+              <span className="hidden sm:inline">LIVE TARGET</span>
+              <span className="sm:hidden">LIVE</span>
             </div>
           </div>
         </header>

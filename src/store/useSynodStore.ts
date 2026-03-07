@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export type ScanMode = 'Passive Recon' | 'Discovery' | 'Exploit Simulation';
 
@@ -39,28 +40,39 @@ interface SynodState {
   setHitlPending: (pending: boolean, details?: string | null) => void;
 }
 
-export const useSynodStore = create<SynodState>((set) => ({
-  apiProviders: [
-    { id: 'openai', name: 'OpenAI', status: 'connected', key: 'sk-...' },
-    { id: 'anthropic', name: 'Anthropic', status: 'disconnected', key: '' },
-    { id: 'gemini', name: 'Google Gemini', status: 'connected', key: 'AIza...' },
-  ],
-  activeTargetDomain: 'example.com',
-  runningProcesses: [
-    { id: 'p1', name: 'Subdomain Enumeration', status: 'running', progress: 45 },
-    { id: 'p2', name: 'Port Scanning', status: 'running', progress: 12 },
-  ],
-  commandHistory: [],
-  scanMode: 'Passive Recon',
-  isHitlPending: false,
-  hitlActionDetails: null,
+export const useSynodStore = create<SynodState>()(
+  persist(
+    (set) => ({
+      apiProviders: [
+        { id: 'openai', name: 'OpenAI', status: 'connected', key: 'sk-...' },
+        { id: 'anthropic', name: 'Anthropic', status: 'disconnected', key: '' },
+        { id: 'gemini', name: 'Google Gemini', status: 'connected', key: 'AIza...' },
+      ],
+      activeTargetDomain: 'example.com',
+      runningProcesses: [
+        { id: 'p1', name: 'Subdomain Enumeration', status: 'running', progress: 45 },
+        { id: 'p2', name: 'Port Scanning', status: 'running', progress: 12 },
+      ],
+      commandHistory: [],
+      scanMode: 'Passive Recon',
+      isHitlPending: false,
+      hitlActionDetails: null,
 
-  setApiProviders: (providers) => set({ apiProviders: providers }),
-  setActiveTargetDomain: (domain) => set({ activeTargetDomain: domain }),
-  setRunningProcesses: (processes) => set({ runningProcesses: processes }),
-  addCommandToHistory: (command) => set((state) => ({ 
-    commandHistory: [...state.commandHistory, { id: Math.random().toString(36).substr(2, 9), command, timestamp: Date.now() }] 
-  })),
-  setScanMode: (mode) => set({ scanMode: mode }),
-  setHitlPending: (pending, details = null) => set({ isHitlPending: pending, hitlActionDetails: details }),
-}));
+      setApiProviders: (providers) => set({ apiProviders: providers }),
+      setActiveTargetDomain: (domain) => set({ activeTargetDomain: domain }),
+      setRunningProcesses: (processes) => set({ runningProcesses: processes }),
+      addCommandToHistory: (command) => set((state) => ({ 
+        commandHistory: [...state.commandHistory, { id: Math.random().toString(36).substr(2, 9), command, timestamp: Date.now() }] 
+      })),
+      setScanMode: (mode) => set({ scanMode: mode }),
+      setHitlPending: (pending, details = null) => set({ isHitlPending: pending, hitlActionDetails: details }),
+    }),
+    {
+      name: 'synod-storage',
+      partialize: (state) => ({ 
+        apiProviders: state.apiProviders, 
+        activeTargetDomain: state.activeTargetDomain 
+      }),
+    }
+  )
+);
