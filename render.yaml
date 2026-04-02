@@ -14,8 +14,9 @@ services:
   - type: web
     name: synod-frontend
     env: static
+    rootDir: frontend
     buildCommand: npm install && npm run build
-    publish: dist
+    staticPublishPath: dist
     routes:
       - type: rewrite
         source: /*
