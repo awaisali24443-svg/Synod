@@ -1,12 +1,14 @@
-from backend.services.report_service import generate_markdown_report
-from backend.utils.logger import WebSocketLogger
+from services.report_service import report_service
+from models.scan_state import ScanState
+from core.websocket_manager import manager
 
 class ReportAgent:
     def __init__(self, scan_id: str):
-        self.logger = WebSocketLogger("ReportAgent", scan_id)
+        self.scan_id = scan_id
+        self.agent_name = "ReportAgent"
 
-    async def generate(self, scan_state) -> str:
-        await self.logger.info("Generating final report")
-        report = generate_markdown_report(scan_state)
-        await self.logger.info("Report generation complete")
+    async def generate(self, state: ScanState) -> str:
+        await manager.broadcast_log(self.agent_name, self.scan_id, "INFO", "Generating final report")
+        report = report_service.generate_report(state)
+        await manager.broadcast_log(self.agent_name, self.scan_id, "INFO", "Report generated successfully")
         return report

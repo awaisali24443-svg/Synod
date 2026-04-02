@@ -1,45 +1,61 @@
 import asyncio
-from backend.core.config import settings
-from backend.utils.logger import WebSocketLogger
+from core.websocket_manager import manager
+from core.config import settings
+from utils.logger import logger
 
-async def run_tool(tool_name: str, args: list, logger: WebSocketLogger) -> str:
-    if settings.MOCK_MODE:
-        await logger.info(f"MOCK_MODE: Simulating {tool_name} {' '.join(args)}")
-        await asyncio.sleep(2)
-        if tool_name == "subfinder":
-            output = "api.example.com\ndev.example.com\nstaging.example.com"
-        elif tool_name == "httpx":
-            output = "https://api.example.com [200]\nhttps://dev.example.com [403]"
-        elif tool_name == "nmap":
-            output = "Port 80/tcp open http\nPort 443/tcp open https"
-        else:
-            output = f"Mock output for {tool_name}"
-        
-        for line in output.split('\n'):
-            await logger.debug(line)
-        return output
-
-    command = [tool_name] + args
-    await logger.info(f"Executing: {' '.join(command)}")
-    
-    try:
-        process = await asyncio.create_subprocess_exec(
-            *command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        
-        stdout_data = []
-        while True:
-            line = await process.stdout.readline()
-            if not line:
-                break
-            decoded_line = line.decode().strip()
-            stdout_data.append(decoded_line)
-            await logger.debug(decoded_line)
+class ToolRunner:
+    async def execute(self, tool_name: str, args: list, process_id: str, agent: str) -> str:
+        if settings.MOCK_MODE:
+            return await self._mock_execute(tool_name, args, process_id, agent)
             
-        await process.wait()
-        return '\n'.join(stdout_data)
-    except Exception as e:
-        await logger.error(f"Tool execution failed: {str(e)}")
-        return ""
+        command = [tool_name] + args
+        logger.info(f"Executing: {' '.join(command)}")
+        await manager.broadcast_log(agent, process_id, "INFO", f"Started {tool_name} {' '.join(args)}")
+        
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            output = []
+            while True:
+                line = await process.stdout.readline()
+                if not line:
+                    break
+                decoded_line = line.decode().strip()
+                output.append(decoded_line)
+                await manager.broadcast_log(agent, process_id, "DEBUG", decoded_line)
+                
+            await process.wait()
+            await manager.broadcast_log(agent, process_id, "INFO", f"Finished {tool_name}")
+            return "\n".join(output)
+            
+        except Exception as e:
+            logger.error(f"Error running {tool_name}: {e}")
+            await manager.broadcast_log(agent, process_id, "ERROR", f"Failed to run {tool_name}: {e}")
+            return ""
+
+    async def _mock_execute(self, tool_name: str, args: list, process_id: str, agent: str) -> str:
+        await manager.broadcast_log(agent, process_id, "INFO", f"Started {tool_name} (MOCK)")
+        await asyncio.sleep(1)
+        
+        mock_output = ""
+        if tool_name == "subfinder":
+            mock_output = "api.example.com\ndev.example.com\nstaging.example.com"
+        elif tool_name == "httpx":
+            mock_output = "https://api.example.com [200]\nhttps://dev.example.com [403]"
+        elif tool_name == "nmap":
+            mock_output = "Port 80/tcp open http\nPort 443/tcp open https"
+        else:
+            mock_output = f"Mock output for {tool_name}"
+            
+        for line in mock_output.split('\n'):
+            await manager.broadcast_log(agent, process_id, "DEBUG", line)
+            await asyncio.sleep(0.5)
+            
+        await manager.broadcast_log(agent, process_id, "INFO", f"Finished {tool_name} (MOCK)")
+        return mock_output
+
+tool_runner = ToolRunner()

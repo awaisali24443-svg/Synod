@@ -1,25 +1,29 @@
-from fastapi import APIRouter
-from backend.models.schemas import AuthRequest
-from backend.agents.orchestrator import active_scans
-from backend.utils.logger import WebSocketLogger
+from fastapi import APIRouter, HTTPException
+from models.schemas import AuthRequest
+from agents.orchestrator import active_scans
+from core.websocket_manager import manager
 
 router = APIRouter(prefix="/api/v1", tags=["auth"])
 
 @router.post("/authorize")
-async def authorize_action(request: AuthRequest):
-    scan = active_scans.get(request.scan_id)
-    if not scan:
-        return {"error": "Scan not found"}
-    
-    logger = WebSocketLogger("AuthSystem", request.scan_id)
-    
-    if request.approved:
-        scan.pending_authorization = True
-        scan.paused = False
-        await logger.info("Human authorization GRANTED. Resuming pipeline.")
+async def authorize_scan(request: AuthRequest):
+    scan_id = request.scan_id
+    if scan_id not in active_scans:
+        raise HTTPException(status_code=404, detail="Scan not found")
+        
+    state = active_scans[scan_id]
+    if not state.pending_authorization:
+        raise HTTPException(status_code=400, detail="Scan is not pending authorization")
+        
+    if request.action == "approve":
+        state.pending_authorization = False
+        state.status = "approved"
+        await manager.broadcast_log("AuthRouter", scan_id, "INFO", "Human authorization approved.")
         return {"status": "approved"}
-    else:
-        scan.pending_authorization = False
-        scan.paused = False
-        await logger.warning("Human authorization REJECTED. Skipping payload execution.")
+    elif request.action == "reject":
+        state.pending_authorization = False
+        state.status = "rejected"
+        await manager.broadcast_log("AuthRouter", scan_id, "WARNING", "Human authorization rejected.")
         return {"status": "rejected"}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action")

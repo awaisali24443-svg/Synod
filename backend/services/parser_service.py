@@ -1,18 +1,20 @@
-def parse_subfinder(output: str) -> list:
-    return [line.strip() for line in output.split('\n') if line.strip()]
+import re
 
-def parse_httpx(output: str) -> list:
-    results = []
-    for line in output.split('\n'):
-        if line.strip():
-            parts = line.split()
-            if len(parts) > 0:
-                results.append({"url": parts[0], "status": parts[1] if len(parts) > 1 else "unknown"})
-    return results
+class ParserService:
+    def parse_subfinder(self, raw_output: str) -> list:
+        domains = []
+        for line in raw_output.split('\n'):
+            line = line.strip()
+            if line and not line.startswith('['):
+                domains.append(line)
+        return domains
 
-def parse_nmap(output: str) -> list:
-    ports = []
-    for line in output.split('\n'):
-        if "open" in line:
-            ports.append(line.strip())
-    return ports
+    def parse_httpx(self, raw_output: str) -> list:
+        urls = []
+        for line in raw_output.split('\n'):
+            match = re.search(r'(https?://[^\s]+)', line)
+            if match:
+                urls.append(match.group(1))
+        return urls
+
+parser_service = ParserService()

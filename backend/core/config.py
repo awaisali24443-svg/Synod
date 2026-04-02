@@ -1,17 +1,21 @@
 import os
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
+    GEMINI_API_KEY: Optional[str] = None
+    GROQ_API_KEY: Optional[str] = None
+    GITHUB_MODELS_API_KEY: Optional[str] = None
     
-    REDIS_URL: str = os.getenv("REDIS_URL", "")
-    NEO4J_URI: str = os.getenv("NEO4J_URI", "")
-    NEO4J_USER: str = os.getenv("NEO4J_USER", "")
-    NEO4J_PASSWORD: str = os.getenv("NEO4J_PASSWORD", "")
+    REDIS_URL: Optional[str] = "redis://localhost:6379/0"
+    NEO4J_URI: Optional[str] = "bolt://localhost:7687"
+    NEO4J_USER: Optional[str] = "neo4j"
+    NEO4J_PASSWORD: Optional[str] = "password"
     
-    DOCKER_SANDBOX: bool = os.getenv("DOCKER_SANDBOX", "True").lower() in ("true", "1", "t")
-    MOCK_MODE: bool = os.getenv("MOCK_MODE", "True").lower() in ("true", "1", "t")
+    USE_DOCKER_SANDBOX: bool = True
+    MOCK_MODE: bool = True
+
+    class Config:
+        env_file = ".env"
 
 settings = Settings()

@@ -1,11 +1,15 @@
-from backend.core.api_gateway import query_llm
+from core.api_gateway import api_gateway
+import json
 
-async def analyze_findings(findings: dict) -> str:
-    prompt = f"Analyze the following recon findings and suggest potential vulnerabilities:\n{findings}"
-    response = await query_llm(prompt)
-    return response
+class LLMService:
+    async def analyze_vulnerabilities(self, data: str) -> str:
+        prompt = f"Analyze the following recon data for vulnerabilities:\n{data}"
+        return await api_gateway.query_llm(prompt)
+        
+    async def batch_analyze(self, tasks: list) -> str:
+        prompt = "Perform the following analysis tasks and return structured JSON:\n"
+        for i, task in enumerate(tasks):
+            prompt += f"Task {i+1}: {task}\n"
+        return await api_gateway.query_llm(prompt)
 
-async def generate_payloads(target: str, tech_stack: list) -> str:
-    prompt = f"Generate safe testing payloads for {target} running {tech_stack}"
-    response = await query_llm(prompt)
-    return response
+llm_service = LLMService()

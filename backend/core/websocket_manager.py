@@ -15,6 +15,16 @@ class ConnectionManager:
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
 
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception:
+                pass
+
     async def broadcast_log(self, agent: str, process_id: str, level: str, message: str):
         log_entry = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -23,10 +33,6 @@ class ConnectionManager:
             "level": level,
             "message": message
         }
-        for connection in self.active_connections:
-            try:
-                await connection.send_text(json.dumps(log_entry))
-            except Exception:
-                pass
+        await self.broadcast(json.dumps(log_entry))
 
 manager = ConnectionManager()

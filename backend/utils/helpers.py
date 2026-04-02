@@ -1,6 +1,8 @@
 import re
 
-def sanitize_input(input_str: str) -> str:
-    if not input_str:
+def sanitize_input(input_string: str) -> str:
+    # Basic sanitization to prevent command injection
+    if not input_string:
         return ""
-    return re.sub(r'[^a-zA-Z0-9.\-_]', '', input_str)
+    # Allow alphanumeric, dot, hyphen, underscore
+    return re.sub(r'[^a-zA-Z0-9.\-_]', '', input_string)

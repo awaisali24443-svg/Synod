@@ -1,64 +1,73 @@
-import asyncio
 import uuid
-from backend.models.scan_state import ScanState
-from backend.agents.recon_agent import ReconAgent
-from backend.agents.analysis_agent import AnalysisAgent
-from backend.agents.payload_agent import PayloadAgent
-from backend.agents.report_agent import ReportAgent
-from backend.utils.logger import WebSocketLogger
-from backend.utils.helpers import sanitize_input
+import asyncio
+from models.scan_state import ScanState
+from agents.recon_agent import ReconAgent
+from agents.analysis_agent import AnalysisAgent
+from agents.payload_agent import PayloadAgent
+from agents.report_agent import ReportAgent
+from services.parser_service import parser_service
+from core.websocket_manager import manager
 
+# In-memory store for scan states
 active_scans = {}
 
 class Orchestrator:
-    def __init__(self, target: str):
-        self.scan_id = str(uuid.uuid4())
-        self.target = sanitize_input(target)
-        self.state = ScanState(self.scan_id, self.target)
-        self.logger = WebSocketLogger("Orchestrator", self.scan_id)
-        active_scans[self.scan_id] = self.state
-
-    async def run_pipeline(self):
+    async def run_pipeline(self, target: str):
+        scan_id = f"scan-{uuid.uuid4().hex[:8]}"
+        state = ScanState(scan_id=scan_id, target=target)
+        active_scans[scan_id] = state
+        
+        await manager.broadcast_log("Orchestrator", scan_id, "INFO", f"Started pipeline for {target}")
+        
         try:
-            await self.logger.info(f"Starting SYNOD pipeline for {self.target}")
-            self.state.update_status("recon")
+            # 1. Recon
+            state.status = "recon"
+            recon_agent = ReconAgent(scan_id)
+            subfinder_out = await recon_agent.run_subfinder(target)
             
-            recon = ReconAgent(self.scan_id)
-            subdomains = await recon.run_subfinder(self.target)
-            self.state.findings["subdomains"] = subdomains
+            # 2. Parsing
+            domains = parser_service.parse_subfinder(subfinder_out)
+            state.recon_data['domains'] = domains
             
-            alive_hosts = await recon.run_httpx(subdomains)
-            self.state.findings["alive_hosts"] = alive_hosts
+            if domains:
+                httpx_out = await recon_agent.run_httpx(domains)
+                urls = parser_service.parse_httpx(httpx_out)
+                state.recon_data['urls'] = urls
             
-            ports = await recon.run_nmap(self.target)
-            self.state.findings["open_ports"] = ports
+            # 3. AI Analysis
+            state.status = "analysis"
+            analysis_agent = AnalysisAgent(scan_id)
+            analysis_result = await analysis_agent.analyze(state.recon_data)
+            state.vulnerabilities = analysis_result.get("vulnerabilities", [])
             
-            self.state.update_status("analysis")
-            analysis = AnalysisAgent(self.scan_id)
-            ai_report = await analysis.analyze(self.state.findings)
-            self.state.findings["analysis"] = ai_report
+            # 4. Human Authorization
+            state.status = "pending_auth"
+            state.pending_authorization = True
+            await manager.broadcast_log("Orchestrator", scan_id, "WARNING", "Pipeline paused. Waiting for human authorization.")
             
-            self.state.update_status("pending_authorization")
-            self.state.paused = True
-            await self.logger.warning("AI proposes potentially intrusive payloads. Pausing for Human-in-the-Loop authorization.")
-            
-            while self.state.paused:
+            # Wait for authorization (mocking wait loop)
+            while state.pending_authorization:
                 await asyncio.sleep(1)
                 
-            if not self.state.pending_authorization:
-                await self.logger.error("Authorization rejected. Aborting payload testing.")
-            else:
-                self.state.update_status("payload_testing")
-                payload_agent = PayloadAgent(self.scan_id)
-                await payload_agent.test_payloads(self.target, "mock_payloads")
+            if state.status == "rejected":
+                await manager.broadcast_log("Orchestrator", scan_id, "ERROR", "Pipeline rejected by human.")
+                return
                 
-            self.state.update_status("reporting")
-            report_agent = ReportAgent(self.scan_id)
-            final_report = await report_agent.generate(self.state)
+            # 5. Payload Testing
+            state.status = "payload_testing"
+            payload_agent = PayloadAgent(scan_id)
+            await payload_agent.test_payloads([{"type": "xss", "target": target}])
             
-            self.state.update_status("completed")
-            await self.logger.info("Pipeline completed successfully.")
+            # 6. Report Generation
+            state.status = "reporting"
+            report_agent = ReportAgent(scan_id)
+            state.report = await report_agent.generate(state)
+            
+            state.status = "completed"
+            await manager.broadcast_log("Orchestrator", scan_id, "INFO", "Pipeline completed successfully.")
             
         except Exception as e:
-            await self.logger.error(f"Pipeline failed: {str(e)}")
-            self.state.update_status("failed")
+            state.status = "failed"
+            await manager.broadcast_log("Orchestrator", scan_id, "ERROR", f"Pipeline failed: {e}")
+
+orchestrator = Orchestrator()

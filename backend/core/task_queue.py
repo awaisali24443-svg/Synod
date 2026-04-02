@@ -1,28 +1,29 @@
 import asyncio
+from typing import Callable, Any
+from utils.logger import logger
 
 class TaskQueue:
-    def __init__(self, max_concurrent: int = 3):
+    def __init__(self, max_concurrent: int = 5):
         self.queue = asyncio.Queue()
-        self.semaphore = asyncio.Semaphore(max_concurrent)
+        self.max_concurrent = max_concurrent
         self.workers = []
 
-    async def enqueue(self, task_func, *args, **kwargs):
-        await self.queue.put((task_func, args, kwargs))
+    async def start(self):
+        for _ in range(self.max_concurrent):
+            worker = asyncio.create_task(self._worker())
+            self.workers.append(worker)
 
-    async def worker(self):
+    async def _worker(self):
         while True:
             task_func, args, kwargs = await self.queue.get()
-            async with self.semaphore:
-                try:
-                    await task_func(*args, **kwargs)
-                except Exception as e:
-                    print(f"Task failed: {e}")
-                finally:
-                    self.queue.task_done()
+            try:
+                await task_func(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Task failed: {e}")
+            finally:
+                self.queue.task_done()
 
-    def start_workers(self, num_workers: int = 3):
-        for _ in range(num_workers):
-            task = asyncio.create_task(self.worker())
-            self.workers.append(task)
+    async def enqueue(self, task_func: Callable, *args, **kwargs):
+        await self.queue.put((task_func, args, kwargs))
 
 task_queue = TaskQueue()
