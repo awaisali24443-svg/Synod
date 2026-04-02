@@ -2,60 +2,67 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface LogEntry {
   id: string;
-  timestamp: number;
+  timestamp: string;
   agent: string;
   processId: string;
   message: string;
-  level: 'info' | 'warning' | 'critical' | 'ai';
+  level: 'info' | 'warning' | 'critical' | 'ai' | 'debug' | 'error';
 }
-
-const AGENTS = ['ReconBot', 'VulnScanner', 'AI_Analyzer', 'ExploitEngine'];
-const PROCESS_IDS = ['PID-1042', 'PID-2099', 'PID-3011', 'PID-4004'];
-const MESSAGES = [
-  'Discovered open port 443',
-  'Analyzing TLS certificate',
-  'Found potential SQLi vulnerability',
-  'Bypassing WAF rules',
-  'Extracting parameter names',
-  'Executing payload',
-  'Connection timeout',
-  'Rate limit exceeded',
-];
-const LEVELS: LogEntry['level'][] = ['info', 'warning', 'critical', 'ai'];
 
 export function useSynodLogs() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const logsRef = useRef<LogEntry[]>([]);
-
-  const generateMockLog = useCallback((): LogEntry => {
-    return {
-      id: Math.random().toString(36).substr(2, 9),
-      timestamp: Date.now(),
-      agent: AGENTS[Math.floor(Math.random() * AGENTS.length)],
-      processId: PROCESS_IDS[Math.floor(Math.random() * PROCESS_IDS.length)],
-      message: MESSAGES[Math.floor(Math.random() * MESSAGES.length)],
-      level: LEVELS[Math.floor(Math.random() * LEVELS.length)],
-    };
-  }, []);
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (isPaused) return;
-
-    const interval = setInterval(() => {
-      const newLog = generateMockLog();
-      logsRef.current = [...logsRef.current, newLog];
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    const connect = () => {
+      const ws = new WebSocket(wsUrl);
       
-      // Keep only last 10000 logs to prevent memory issues
-      if (logsRef.current.length > 10000) {
-        logsRef.current = logsRef.current.slice(-10000);
+      ws.onmessage = (event) => {
+        if (isPaused) return;
+        
+        try {
+          const data = JSON.parse(event.data);
+          const newLog: LogEntry = {
+            id: Math.random().toString(36).substr(2, 9),
+            timestamp: data.timestamp,
+            agent: data.agent,
+            processId: data.processId,
+            message: data.message,
+            level: data.level.toLowerCase() as any,
+          };
+          
+          logsRef.current = [...logsRef.current, newLog];
+          
+          if (logsRef.current.length > 10000) {
+            logsRef.current = logsRef.current.slice(-10000);
+          }
+          
+          setLogs([...logsRef.current]);
+        } catch (e) {
+          console.error("Failed to parse log message", e);
+        }
+      };
+
+      ws.onclose = () => {
+        setTimeout(connect, 2000); // Reconnect
+      };
+
+      wsRef.current = ws;
+    };
+
+    connect();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
       }
-      
-      setLogs([...logsRef.current]);
-    }, 500); // Generate a log every 500ms
-
-    return () => clearInterval(interval);
-  }, [isPaused, generateMockLog]);
+    };
+  }, [isPaused]);
 
   const clearLogs = useCallback(() => {
     logsRef.current = [];

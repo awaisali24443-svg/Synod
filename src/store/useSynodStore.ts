@@ -44,15 +44,12 @@ export const useSynodStore = create<SynodState>()(
   persist(
     (set) => ({
       apiProviders: [
-        { id: 'openai', name: 'OpenAI', status: 'connected', key: 'sk-...' },
+        { id: 'gemini', name: 'Google Gemini', status: 'disconnected', key: '' },
+        { id: 'openai', name: 'OpenAI', status: 'disconnected', key: '' },
         { id: 'anthropic', name: 'Anthropic', status: 'disconnected', key: '' },
-        { id: 'gemini', name: 'Google Gemini', status: 'connected', key: 'AIza...' },
       ],
-      activeTargetDomain: 'example.com',
-      runningProcesses: [
-        { id: 'p1', name: 'Subdomain Enumeration', status: 'running', progress: 45 },
-        { id: 'p2', name: 'Port Scanning', status: 'running', progress: 12 },
-      ],
+      activeTargetDomain: '',
+      runningProcesses: [],
       commandHistory: [],
       scanMode: 'Passive Recon',
       isHitlPending: false,

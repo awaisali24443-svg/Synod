@@ -4,7 +4,7 @@ import { Play, Terminal as TerminalIcon, ShieldAlert, Crosshair, Search } from '
 import { cn } from '../utils/cn';
 
 export function ControlPanel() {
-  const { activeTargetDomain, setActiveTargetDomain, scanMode, setScanMode, addCommandToHistory } = useSynodStore();
+  const { activeTargetDomain, setActiveTargetDomain, scanMode, setScanMode, addCommandToHistory, apiProviders } = useSynodStore();
   const [command, setCommand] = useState('');
 
   const modes: { id: ScanMode; icon: React.ElementType; label: string }[] = [
@@ -13,10 +13,31 @@ export function ControlPanel() {
     { id: 'Exploit Simulation', icon: ShieldAlert, label: 'Exploit Sim' },
   ];
 
-  const handleExecute = (e: React.FormEvent) => {
+  const handleExecute = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!command.trim()) return;
-    addCommandToHistory(command);
+    const target = command.trim() || activeTargetDomain.trim();
+    if (!target) return;
+    
+    addCommandToHistory(command || `scan ${target}`);
+    
+    const api_keys = apiProviders.reduce((acc, provider) => {
+      if (provider.key) acc[provider.id] = provider.key;
+      return acc;
+    }, {} as Record<string, string>);
+
+    try {
+      const res = await fetch('/api/v1/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target, api_keys })
+      });
+      if (!res.ok) {
+        console.error("Failed to start scan");
+      }
+    } catch (err) {
+      console.error("Error starting scan", err);
+    }
+
     setCommand('');
   };
 

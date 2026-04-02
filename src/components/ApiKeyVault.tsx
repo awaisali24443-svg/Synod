@@ -4,11 +4,21 @@ import { Key, Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 export function ApiKeyVault() {
-  const { apiProviders } = useSynodStore();
+  const { apiProviders, setApiProviders } = useSynodStore();
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
 
   const toggleVisibility = (id: string) => {
     setVisibleKeys(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const updateKey = (id: string, newKey: string) => {
+    const updatedProviders = apiProviders.map(p => {
+      if (p.id === id) {
+        return { ...p, key: newKey, status: newKey ? 'connected' : 'disconnected' as any };
+      }
+      return p;
+    });
+    setApiProviders(updatedProviders);
   };
 
   return (
@@ -42,7 +52,7 @@ export function ApiKeyVault() {
               <input
                 type={visibleKeys[provider.id] ? "text" : "password"}
                 value={provider.key}
-                readOnly
+                onChange={(e) => updateKey(provider.id, e.target.value)}
                 placeholder="Enter API Key..."
                 className="w-full bg-black/50 border border-white/10 rounded px-3 py-1.5 text-xs font-mono text-gray-400 focus:outline-none focus:border-white/20 pr-8"
               />
