@@ -5,7 +5,8 @@ import { ReconPipeline } from './ReconPipeline';
 import { KnowledgeGraph } from './KnowledgeGraph';
 import { ApiKeyVault } from './ApiKeyVault';
 import { HITLPanel } from './HITLPanel';
-import { Activity, Shield, Terminal as TerminalIcon, Settings, Database, Network, Menu, X } from 'lucide-react';
+import { TargetQueue } from './TargetQueue';
+import { Activity, Shield, Terminal as TerminalIcon, Settings, Database, Network, Menu, X, Inbox } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 export function DashboardLayout() {
@@ -14,6 +15,7 @@ export function DashboardLayout() {
 
   const navItems = [
     { icon: Activity, label: 'Dashboard' },
+    { icon: Inbox, label: 'Queue & Inbox' },
     { icon: TerminalIcon, label: 'Terminal' },
     { icon: Network, label: 'Graph' },
     { icon: Settings, label: 'Settings' },
@@ -25,6 +27,12 @@ export function DashboardLayout() {
         return (
           <div className="flex-1 p-4 md:p-6 h-full">
             <Terminal />
+          </div>
+        );
+      case 'Queue & Inbox':
+        return (
+          <div className="flex-1 p-4 md:p-6 h-full max-w-5xl mx-auto w-full">
+            <TargetQueue />
           </div>
         );
       case 'Graph':
@@ -43,13 +51,12 @@ export function DashboardLayout() {
       default:
         return (
           <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 h-full min-h-[800px]">
-              {/* Left Column: Control & Pipeline */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 h-full min-h-[800px] max-w-[1600px] mx-auto">
+              {/* Left Column: Control & Queue */}
               <div className="lg:col-span-4 flex flex-col gap-4 md:gap-6">
                 <ControlPanel />
-                <ApiKeyVault />
-                <div className="flex-1 min-h-[300px]">
-                  <KnowledgeGraph />
+                <div className="flex-1 min-h-[400px]">
+                  <TargetQueue />
                 </div>
               </div>
               
@@ -81,13 +88,13 @@ export function DashboardLayout() {
         "fixed md:static inset-y-0 left-0 w-64 border-r border-white/5 bg-synod-bg-secondary flex flex-col transition-transform duration-300 z-50",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
-        <div className="h-16 flex items-center justify-between px-6 border-b border-white/5">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-synod-border bg-synod-bg-tertiary">
           <div className="flex items-center">
             <Shield className="text-synod-accent shrink-0" size={24} />
-            <span className="ml-3 font-bold tracking-widest text-lg">SYNOD</span>
+            <span className="ml-3 font-bold tracking-widest text-lg text-white">SYNOD</span>
           </div>
           <button 
-            className="md:hidden text-gray-400 hover:text-white"
+            className="md:hidden text-synod-text-secondary hover:text-white"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <X size={20} />
@@ -105,31 +112,31 @@ export function DashboardLayout() {
               className={cn(
                 "flex items-center px-3 py-3 rounded-lg transition-all group cursor-pointer",
                 activeTab === item.label 
-                  ? "bg-synod-accent/10 text-synod-accent" 
-                  : "text-gray-500 hover:bg-white/5 hover:text-gray-300"
+                  ? "bg-synod-accent/10 text-synod-accent border border-synod-accent/20" 
+                  : "text-synod-text-secondary hover:bg-white/5 hover:text-white border border-transparent"
               )}
             >
-              <item.icon size={20} className={cn("shrink-0", activeTab === item.label ? "text-synod-accent" : "text-gray-500 group-hover:text-gray-300")} />
+              <item.icon size={20} className={cn("shrink-0", activeTab === item.label ? "text-synod-accent" : "text-synod-text-secondary group-hover:text-white")} />
               <span className="ml-3 text-sm font-medium">{item.label}</span>
             </button>
           ))}
         </nav>
         
-        <div className="p-4 border-t border-white/5">
-          <div className="flex items-center space-x-2 text-xs font-mono text-gray-500">
+        <div className="p-4 border-t border-synod-border bg-synod-bg-tertiary">
+          <div className="flex items-center space-x-2 text-xs font-mono text-synod-text-muted">
             <span className="w-2 h-2 rounded-full bg-synod-accent animate-pulse" />
-            <span>v2.4.1-beta</span>
+            <span>v3.0.0-core</span>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-synod-bg-primary">
         {/* Top Header */}
-        <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 md:px-6 bg-synod-bg-primary/80 backdrop-blur-sm z-10">
+        <header className="h-16 border-b border-synod-border flex items-center justify-between px-4 md:px-6 bg-synod-bg-secondary/80 backdrop-blur-md z-10">
           <div className="flex items-center">
             <button 
-              className="md:hidden mr-4 text-gray-400 hover:text-white"
+              className="md:hidden mr-4 text-synod-text-secondary hover:text-white"
               onClick={() => setIsMobileMenuOpen(true)}
             >
               <Menu size={24} />

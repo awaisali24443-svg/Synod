@@ -45,8 +45,9 @@ export const useSynodStore = create<SynodState>()(
     (set) => ({
       apiProviders: [
         { id: 'gemini', name: 'Google Gemini', status: 'disconnected', key: '' },
-        { id: 'openai', name: 'OpenAI', status: 'disconnected', key: '' },
-        { id: 'anthropic', name: 'Anthropic', status: 'disconnected', key: '' },
+        { id: 'deepseek', name: 'DeepSeek (R1/V3)', status: 'disconnected', key: '' },
+        { id: 'huggingface', name: 'Hugging Face (Open Source)', status: 'disconnected', key: '' },
+        { id: 'anthropic', name: 'Anthropic (Claude)', status: 'disconnected', key: '' },
       ],
       activeTargetDomain: '',
       runningProcesses: [],
