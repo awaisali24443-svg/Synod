@@ -91,41 +91,47 @@ export function Terminal() {
         onScroll={handleScroll}
         className="flex-1 overflow-auto p-4 custom-scrollbar"
       >
-        <div
-          style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const log = filteredLogs[virtualRow.index];
-            const date = new Date(log.timestamp);
-            const timeString = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}.${date.getMilliseconds().toString().padStart(3, '0')}`;
-            
-            return (
-              <div
-                key={virtualRow.index}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: `${virtualRow.size}px`,
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-                className="flex items-center space-x-3 hover:bg-white/5 px-2 rounded transition-colors"
-              >
-                <span className="text-gray-600 shrink-0">[{timeString}]</span>
-                <span className="text-synod-accent shrink-0 w-24 truncate">{log.agent}</span>
-                <span className="text-gray-500 shrink-0 w-20">{log.processId}</span>
-                <span className={cn("truncate", getLevelColor(log.level))}>
-                  {log.message}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        {filteredLogs.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-gray-600 font-mono text-xs">
+            <span className="animate-pulse">Waiting for telemetry...</span>
+          </div>
+        ) : (
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const log = filteredLogs[virtualRow.index];
+              const date = new Date(log.timestamp);
+              const timeString = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}.${date.getMilliseconds().toString().padStart(3, '0')}`;
+              
+              return (
+                <div
+                  key={virtualRow.index}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                  className="flex items-center space-x-3 hover:bg-white/5 px-2 rounded transition-colors"
+                >
+                  <span className="text-gray-600 shrink-0">[{timeString}]</span>
+                  <span className="text-synod-accent shrink-0 w-24 truncate">{log.agent}</span>
+                  <span className="text-gray-500 shrink-0 w-20">{log.processId}</span>
+                  <span className={cn("truncate", getLevelColor(log.level))}>
+                    {log.message}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

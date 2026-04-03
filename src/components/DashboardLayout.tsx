@@ -10,14 +10,61 @@ import { cn } from '../utils/cn';
 
 export function DashboardLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('Dashboard');
 
   const navItems = [
-    { icon: Activity, label: 'Dashboard', active: true },
-    { icon: TerminalIcon, label: 'Terminal', active: false },
-    { icon: Network, label: 'Graph', active: false },
-    { icon: Database, label: 'Data', active: false },
-    { icon: Settings, label: 'Settings', active: false },
+    { icon: Activity, label: 'Dashboard' },
+    { icon: TerminalIcon, label: 'Terminal' },
+    { icon: Network, label: 'Graph' },
+    { icon: Settings, label: 'Settings' },
   ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'Terminal':
+        return (
+          <div className="flex-1 p-4 md:p-6 h-full">
+            <Terminal />
+          </div>
+        );
+      case 'Graph':
+        return (
+          <div className="flex-1 p-4 md:p-6 h-full">
+            <KnowledgeGraph />
+          </div>
+        );
+      case 'Settings':
+        return (
+          <div className="flex-1 p-4 md:p-6 max-w-2xl mx-auto w-full">
+            <ApiKeyVault />
+          </div>
+        );
+      case 'Dashboard':
+      default:
+        return (
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 h-full min-h-[800px]">
+              {/* Left Column: Control & Pipeline */}
+              <div className="lg:col-span-4 flex flex-col gap-4 md:gap-6">
+                <ControlPanel />
+                <ApiKeyVault />
+                <div className="flex-1 min-h-[300px]">
+                  <KnowledgeGraph />
+                </div>
+              </div>
+              
+              {/* Right Column: Terminal & Pipeline */}
+              <div className="lg:col-span-8 flex flex-col gap-4 md:gap-6">
+                <ReconPipeline />
+                <div className="flex-1 min-h-[400px]">
+                  <Terminal />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
 
   return (
     <div className="flex h-screen w-full bg-synod-bg-primary text-white overflow-hidden selection:bg-synod-accent/30">
@@ -51,14 +98,18 @@ export function DashboardLayout() {
           {navItems.map((item, i) => (
             <button
               key={i}
+              onClick={() => {
+                setActiveTab(item.label);
+                setIsMobileMenuOpen(false);
+              }}
               className={cn(
                 "flex items-center px-3 py-3 rounded-lg transition-all group cursor-pointer",
-                item.active 
+                activeTab === item.label 
                   ? "bg-synod-accent/10 text-synod-accent" 
                   : "text-gray-500 hover:bg-white/5 hover:text-gray-300"
               )}
             >
-              <item.icon size={20} className={cn("shrink-0", item.active ? "text-synod-accent" : "text-gray-500 group-hover:text-gray-300")} />
+              <item.icon size={20} className={cn("shrink-0", activeTab === item.label ? "text-synod-accent" : "text-gray-500 group-hover:text-gray-300")} />
               <span className="ml-3 text-sm font-medium">{item.label}</span>
             </button>
           ))}
@@ -83,7 +134,9 @@ export function DashboardLayout() {
             >
               <Menu size={24} />
             </button>
-            <h1 className="text-sm md:text-lg font-semibold tracking-wide text-gray-200 truncate max-w-[200px] md:max-w-none">Vulnerability Intelligence</h1>
+            <h1 className="text-sm md:text-lg font-semibold tracking-wide text-gray-200 truncate max-w-[200px] md:max-w-none">
+              {activeTab === 'Dashboard' ? 'Vulnerability Intelligence' : activeTab}
+            </h1>
           </div>
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 text-[10px] md:text-xs font-mono bg-synod-critical/10 text-synod-critical px-2 md:px-3 py-1 md:py-1.5 rounded-full border border-synod-critical/20">
@@ -94,29 +147,8 @@ export function DashboardLayout() {
           </div>
         </header>
 
-        {/* Dashboard Grid */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 h-full min-h-[800px]">
-            
-            {/* Left Column: Control & Pipeline */}
-            <div className="lg:col-span-4 flex flex-col gap-4 md:gap-6">
-              <ControlPanel />
-              <ApiKeyVault />
-              <div className="flex-1 min-h-[300px]">
-                <KnowledgeGraph />
-              </div>
-            </div>
-            
-            {/* Right Column: Terminal & Pipeline */}
-            <div className="lg:col-span-8 flex flex-col gap-4 md:gap-6">
-              <ReconPipeline />
-              <div className="flex-1 min-h-[400px]">
-                <Terminal />
-              </div>
-            </div>
-            
-          </div>
-        </div>
+        {/* Dynamic Content */}
+        {renderContent()}
       </main>
 
       <HITLPanel />

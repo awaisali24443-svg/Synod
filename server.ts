@@ -202,8 +202,17 @@ async function startServer() {
     if (!target) {
       return res.status(400).json({ error: "Target is required" });
     }
+    
+    // Sanitize target (remove http://, https://, and paths)
+    let cleanTarget = target.replace(/^(https?:\/\/)/, '').split('/')[0];
+
+    // Clear previous scans so the UI tracks the new one cleanly
+    for (const key in activeScans) {
+      delete activeScans[key];
+    }
+
     // Fire and forget
-    runPipeline(target, api_keys);
+    runPipeline(cleanTarget, api_keys);
     res.json({ scan_id: "queued", status: "queued", message: "Scan task added to queue" });
   });
 
